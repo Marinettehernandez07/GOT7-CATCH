@@ -1,0 +1,520 @@
+YPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOT7 Catch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #008000; /* Fondo verde */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+            overflow-y: auto; /* Permitir scroll si el contenido es muy largo */
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+            gap: 1rem;
+        }
+
+        #game-area {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-color: #1a4314;
+            border: 4px solid #386438;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #player {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15%;
+            height: 5%; /* Vuelve al tamaño original de la barra */
+            /* Se ha eliminado el color de fondo para la imagen */
+            border-top-left-radius: 9999px;
+            border-top-right-radius: 9999px;
+            transition: left 0.1s ease-out;
+        }
+
+        .falling-emoji {
+            position: absolute;
+            top: 0;
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+            user-select: none;
+        }
+
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 400px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: #1a4314;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1-px rgba(0, 0, 0, 0.06);
+        }
+
+        .instructions-box {
+            background-color: #1a4314;
+            padding: 1.5rem;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        .instructions-box.show {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-buttons button {
+            background-color: #386438;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .control-buttons button:hover {
+            background-color: #2e5c2e;
+        }
+
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            font-size: 1.5rem;
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .message-box button {
+            background-color: #fcfc01;
+            color: #000;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .message-box button:hover {
+            transform: scale(1.05);
+        }
+
+        #high-scores-box {
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            background-color: #1a4314;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        #high-scores-box h2 {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .high-score-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.125rem;
+            padding: 0.5rem;
+            background-color: #2e5c2e;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="text-4xl font-extrabold mb-4 text-center">GOT7 Catch</h1>
+        
+        <iframe width="100%" height="166" scrolling="no" frameborder="no" allow="autoplay" src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2015248647&color=%23ff5500&auto_play=true&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true"></iframe><div style="font-size: 10px; color: #cccccc;line-break: anywhere;word-break: normal;overflow: hidden;white-space: nowrap;text-overflow: ellipsis; font-family: Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif;font-weight: 100;"><a href="https://soundcloud.com/sakuramxm" title="sakura" target="_blank" style="color: #cccccc; text-decoration: none;">sakura</a> · <a href="https://soundcloud.com/sakuramxm/got7-python" title="GOT7 - PYTHON" target="_blank" style="color: #cccccc; text-decoration: none;">GOT7 - PYTHON</a></div>
+        
+        <div class="control-buttons">
+            <button id="start-btn" class="rounded-full px-4 py-2">
+                Empezar Juego
+            </button>
+            <button id="instructions-btn" class="rounded-full px-4 py-2">
+                Instrucciones
+            </button>
+            <button id="high-scores-btn" class="rounded-full px-4 py-2">
+                Puntuaciones Altas
+            </button>
+        </div>
+
+        <div id="instructions-box" class="instructions-box">
+            <h2 class="text-2xl font-bold mb-2 text-center">Cómo Jugar</h2>
+            <p class="text-sm text-center mb-4">¡Atrapa todos los emojis de GOT7 que puedas!</p>
+            <ul class="list-disc list-inside space-y-2 text-left">
+                <li><strong class="font-semibold">Mueve el recipiente:</strong> En el escritorio, mueve el mouse para controlar el recipiente. En el móvil, desliza tu dedo sobre la pantalla.</li>
+                <li><strong class="font-semibold">Atrapa emojis:</strong> Cada emoji que atrapes suma 10 puntos a tu marcador.</li>
+                <li><strong class="font-semibold">Sé rápido:</strong> Tienes 90 segundos para conseguir la puntuación más alta.</li>
+                <li><strong class="font-semibold">¡No dejes que caigan!:</strong> Si un emoji llega al suelo, no obtendrás puntos por él.</li>
+            </ul>
+        </div>
+        
+        <div id="high-scores-box">
+            <h2>Puntuaciones Altas</h2>
+            <div id="scores-list"></div>
+        </div>
+
+        <div class="stats-container">
+            <div class="stats-item">
+                <span class="text-sm font-normal">Puntuación</span>
+                <span id="score" class="text-2xl font-bold">0</span>
+            </div>
+            <div class="stats-item">
+                <span class="text-sm font-normal">Tiempo</span>
+                <span id="time" class="text-2xl font-bold">90</span>
+            </div>
+        </div>
+
+        <div id="game-area">
+            <img id="player" src="https://png.pngtree.com/png-clipart/20241129/original/pngtree-potion-bottle-pixel-art-vector-png-image_17421496.png" alt="Recipiente para emojis" />
+        </div>
+
+        <div id="message-box" class="message-box">
+            <div id="message-text"></div>
+            <button id="message-button">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <!-- Main Game Script -->
+    <script type="module">
+        // Firebase Libraries
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const emojis = ['🐢', '🐍', '🐰', '🌴', '🍑', '🦦', '🐜'];
+            const gameArea = document.getElementById('game-area');
+            const player = document.getElementById('player');
+            const scoreDisplay = document.getElementById('score');
+            const timeDisplay = document.getElementById('time');
+            const startBtn = document.getElementById('start-btn');
+            const instructionsBtn = document.getElementById('instructions-btn');
+            const instructionsBox = document.getElementById('instructions-box');
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+            const messageButton = document.getElementById('message-button');
+            const highScoresBtn = document.getElementById('high-scores-btn');
+            const highScoresBox = document.getElementById('high-scores-box');
+            const scoresList = document.getElementById('scores-list');
+
+            let score = 0;
+            let time = 90;
+            let gameRunning = false;
+            let emojiInterval;
+            let timerInterval;
+            let instructionsVisible = false;
+            let highScoresVisible = false;
+
+            // Global variables provided by the environment (DO NOT CHANGE)
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+            // Initialize Firebase
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+            
+            let userId;
+
+            // Authenticate user
+            if (initialAuthToken) {
+                try {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } catch (error) {
+                    console.error("Error signing in with custom token:", error);
+                    await signInAnonymously(auth);
+                }
+            } else {
+                await signInAnonymously(auth);
+            }
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Authenticated as user:", userId);
+                    // You can display the user ID on the UI for sharing
+                    const userIdDisplay = document.createElement('div');
+                    userIdDisplay.className = "text-xs mt-2";
+                    userIdDisplay.textContent = `ID de Jugador: ${userId}`;
+                    document.querySelector('.game-container').appendChild(userIdDisplay);
+                    fetchHighScores();
+                } else {
+                    console.log("User not authenticated.");
+                    userId = crypto.randomUUID();
+                }
+            });
+
+            const updateStats = () => {
+                scoreDisplay.textContent = score;
+                timeDisplay.textContent = time;
+            };
+
+            const getRandomEmoji = () => {
+                return emojis[Math.floor(Math.random() * emojis.length)];
+            };
+
+            const createEmoji = () => {
+                const emoji = document.createElement('div');
+                emoji.classList.add('falling-emoji');
+                emoji.textContent = getRandomEmoji();
+                const gameAreaWidth = gameArea.offsetWidth;
+                const gameAreaHeight = gameArea.offsetHeight;
+
+                const startX = Math.random() * (gameAreaWidth - 50);
+                emoji.style.left = `${startX}px`;
+                gameArea.appendChild(emoji);
+
+                let yPos = -50;
+                const fallSpeed = 3.0 + Math.random() * 2.0;
+
+                const animate = () => {
+                    if (!gameRunning) {
+                        if (emoji && emoji.parentNode) {
+                            emoji.parentNode.removeChild(emoji);
+                        }
+                        return;
+                    }
+                    
+                    yPos += fallSpeed;
+                    emoji.style.top = `${yPos}px`;
+                    
+                    const playerRect = player.getBoundingClientRect();
+                    const emojiRect = emoji.getBoundingClientRect();
+                    
+                    if (yPos + emoji.offsetHeight > gameAreaHeight) {
+                        if (emoji && emoji.parentNode) {
+                            emoji.parentNode.removeChild(emoji);
+                        }
+                    } else if (
+                        emojiRect.bottom >= playerRect.top &&
+                        emojiRect.right >= playerRect.left &&
+                        emojiRect.left <= playerRect.right
+                    ) {
+                        score += 10;
+                        updateStats();
+                        if (emoji && emoji.parentNode) {
+                            emoji.parentNode.removeChild(emoji);
+                        }
+                    } else {
+                        requestAnimationFrame(animate);
+                    }
+                };
+                requestAnimationFrame(animate);
+            };
+
+            const handlePlayerMove = (event) => {
+                if (!gameRunning) return;
+                const gameAreaRect = gameArea.getBoundingClientRect();
+                let clientX;
+                
+                if (event.type === 'touchmove' && event.touches.length > 0) {
+                    clientX = event.touches[0].clientX;
+                } else if (event.type === 'mousemove') {
+                    clientX = event.clientX;
+                } else {
+                    return;
+                }
+
+                let newPlayerX = clientX - gameAreaRect.left - (player.offsetWidth / 2);
+
+                if (newPlayerX < 0) {
+                    newPlayerX = 0;
+                } else if (newPlayerX > gameAreaRect.width - player.offsetWidth) {
+                    newPlayerX = gameArea.width - player.offsetWidth;
+                }
+
+                player.style.left = `${newPlayerX}px`;
+            };
+
+            const startGame = () => {
+                if (gameRunning) return;
+                gameRunning = true;
+                score = 0;
+                time = 90;
+                updateStats();
+                startBtn.textContent = 'Juego en Curso...';
+                startBtn.disabled = true;
+
+                emojiInterval = setInterval(createEmoji, 600);
+                timerInterval = setInterval(() => {
+                    time--;
+                    updateStats();
+                    if (time <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+
+                gameArea.addEventListener('mousemove', handlePlayerMove);
+                gameArea.addEventListener('touchmove', handlePlayerMove);
+                gameArea.addEventListener('touchstart', handlePlayerMove);
+            };
+
+            const endGame = async () => {
+                gameRunning = false;
+                clearInterval(emojiInterval);
+                clearInterval(timerInterval);
+                startBtn.textContent = 'Empezar Juego';
+                startBtn.disabled = false;
+                
+                gameArea.removeEventListener('mousemove', handlePlayerMove);
+                gameArea.removeEventListener('touchmove', handlePlayerMove);
+
+                // Save score to Firestore
+                await saveHighScore(score);
+
+                showMessageBox(`¡Se acabó el tiempo! Tu puntuación final es: ${score}`, 'Jugar de Nuevo', () => {
+                    messageBox.style.display = 'none';
+                    startGame();
+                });
+            };
+
+            const saveHighScore = async (finalScore) => {
+                if (!userId) {
+                    console.error("User ID is not available.");
+                    return;
+                }
+                const scoresRef = collection(db, `artifacts/${appId}/public/data/high_scores`);
+                try {
+                    await addDoc(scoresRef, {
+                        userId: userId,
+                        score: finalScore,
+                        timestamp: new Date()
+                    });
+                    console.log("Score saved successfully!");
+                    fetchHighScores();
+                } catch (error) {
+                    console.error("Error saving high score:", error);
+                }
+            };
+
+            const fetchHighScores = async () => {
+                if (!db) {
+                    console.error("Firestore is not initialized.");
+                    return;
+                }
+                const scoresRef = collection(db, `artifacts/${appId}/public/data/high_scores`);
+                const q = query(scoresRef, limit(20)); // Limitar a 20 documentos para evitar problemas de índice
+                
+                // Get documents and sort them in-memory
+                try {
+                    const querySnapshot = await getDocs(q);
+                    const scores = [];
+                    querySnapshot.forEach((doc) => {
+                        scores.push(doc.data());
+                    });
+
+                    // Sort scores in descending order
+                    scores.sort((a, b) => b.score - a.score);
+
+                    renderHighScores(scores);
+                } catch (error) {
+                    console.error("Error fetching high scores:", error);
+                }
+            };
+
+            const renderHighScores = (scores) => {
+                scoresList.innerHTML = '';
+                if (scores.length === 0) {
+                    scoresList.innerHTML = `<p class="text-center text-sm">Aún no hay puntuaciones. ¡Sé la primera!</p>`;
+                    return;
+                }
+                scores.forEach((item) => {
+                    const scoreItem = document.createElement('div');
+                    scoreItem.className = "high-score-item";
+                    scoreItem.innerHTML = `
+                        <span>${item.userId}</span>
+                        <span>${item.score}</span>
+                    `;
+                    scoresList.appendChild(scoreItem);
+                });
+            };
+
+            const showMessageBox = (text, buttonText, buttonAction) => {
+                messageText.textContent = text;
+                messageButton.textContent = buttonText;
+                messageButton.onclick = buttonAction;
+                messageBox.style.display = 'flex';
+            };
+
+            startBtn.addEventListener('click', startGame);
+            
+            instructionsBtn.addEventListener('click', () => {
+                instructionsVisible = !instructionsVisible;
+                if (instructionsVisible) {
+                    instructionsBox.classList.add('show');
+                    highScoresBox.style.display = 'none';
+                    highScoresVisible = false;
+                } else {
+                    instructionsBox.classList.remove('show');
+                }
+            });
+
+            highScoresBtn.addEventListener('click', () => {
+                highScoresVisible = !highScoresVisible;
+                if (highScoresVisible) {
+                    highScoresBox.style.display = 'flex';
+                    instructionsBox.classList.remove('show');
+                    instructionsVisible = false;
+                } else {
+                    highScoresBox.style.display = 'none';
+                }
+            });
+            
+            // Initial fetch of high scores
+            fetchHighScores();
+        });
+    </script>
+</body>
+</html>
