@@ -1,4 +1,4 @@
-YPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -183,9 +183,6 @@ YPE html>
             <button id="instructions-btn" class="rounded-full px-4 py-2">
                 Instrucciones
             </button>
-            <button id="high-scores-btn" class="rounded-full px-4 py-2">
-                Puntuaciones Altas
-            </button>
         </div>
 
         <div id="instructions-box" class="instructions-box">
@@ -199,11 +196,6 @@ YPE html>
             </ul>
         </div>
         
-        <div id="high-scores-box">
-            <h2>Puntuaciones Altas</h2>
-            <div id="scores-list"></div>
-        </div>
-
         <div class="stats-container">
             <div class="stats-item">
                 <span class="text-sm font-normal">Puntuación</span>
@@ -226,13 +218,8 @@ YPE html>
     </div>
 
     <!-- Main Game Script -->
-    <script type="module">
-        // Firebase Libraries
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        document.addEventListener('DOMContentLoaded', async () => {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
             const emojis = ['🐢', '🐍', '🐰', '🌴', '🍑', '🦦', '🐜'];
             const gameArea = document.getElementById('game-area');
             const player = document.getElementById('player');
@@ -244,9 +231,6 @@ YPE html>
             const messageBox = document.getElementById('message-box');
             const messageText = document.getElementById('message-text');
             const messageButton = document.getElementById('message-button');
-            const highScoresBtn = document.getElementById('high-scores-btn');
-            const highScoresBox = document.getElementById('high-scores-box');
-            const scoresList = document.getElementById('scores-list');
 
             let score = 0;
             let time = 90;
@@ -254,47 +238,6 @@ YPE html>
             let emojiInterval;
             let timerInterval;
             let instructionsVisible = false;
-            let highScoresVisible = false;
-
-            // Global variables provided by the environment (DO NOT CHANGE)
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-            const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-            // Initialize Firebase
-            const app = initializeApp(firebaseConfig);
-            const auth = getAuth(app);
-            const db = getFirestore(app);
-            
-            let userId;
-
-            // Authenticate user
-            if (initialAuthToken) {
-                try {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } catch (error) {
-                    console.error("Error signing in with custom token:", error);
-                    await signInAnonymously(auth);
-                }
-            } else {
-                await signInAnonymously(auth);
-            }
-
-            onAuthStateChanged(auth, user => {
-                if (user) {
-                    userId = user.uid;
-                    console.log("Authenticated as user:", userId);
-                    // You can display the user ID on the UI for sharing
-                    const userIdDisplay = document.createElement('div');
-                    userIdDisplay.className = "text-xs mt-2";
-                    userIdDisplay.textContent = `ID de Jugador: ${userId}`;
-                    document.querySelector('.game-container').appendChild(userIdDisplay);
-                    fetchHighScores();
-                } else {
-                    console.log("User not authenticated.");
-                    userId = crypto.randomUUID();
-                }
-            });
 
             const updateStats = () => {
                 scoreDisplay.textContent = score;
@@ -401,7 +344,7 @@ YPE html>
                 gameArea.addEventListener('touchstart', handlePlayerMove);
             };
 
-            const endGame = async () => {
+            const endGame = () => {
                 gameRunning = false;
                 clearInterval(emojiInterval);
                 clearInterval(timerInterval);
@@ -411,73 +354,9 @@ YPE html>
                 gameArea.removeEventListener('mousemove', handlePlayerMove);
                 gameArea.removeEventListener('touchmove', handlePlayerMove);
 
-                // Save score to Firestore
-                await saveHighScore(score);
-
                 showMessageBox(`¡Se acabó el tiempo! Tu puntuación final es: ${score}`, 'Jugar de Nuevo', () => {
                     messageBox.style.display = 'none';
                     startGame();
-                });
-            };
-
-            const saveHighScore = async (finalScore) => {
-                if (!userId) {
-                    console.error("User ID is not available.");
-                    return;
-                }
-                const scoresRef = collection(db, `artifacts/${appId}/public/data/high_scores`);
-                try {
-                    await addDoc(scoresRef, {
-                        userId: userId,
-                        score: finalScore,
-                        timestamp: new Date()
-                    });
-                    console.log("Score saved successfully!");
-                    fetchHighScores();
-                } catch (error) {
-                    console.error("Error saving high score:", error);
-                }
-            };
-
-            const fetchHighScores = async () => {
-                if (!db) {
-                    console.error("Firestore is not initialized.");
-                    return;
-                }
-                const scoresRef = collection(db, `artifacts/${appId}/public/data/high_scores`);
-                const q = query(scoresRef, limit(20)); // Limitar a 20 documentos para evitar problemas de índice
-                
-                // Get documents and sort them in-memory
-                try {
-                    const querySnapshot = await getDocs(q);
-                    const scores = [];
-                    querySnapshot.forEach((doc) => {
-                        scores.push(doc.data());
-                    });
-
-                    // Sort scores in descending order
-                    scores.sort((a, b) => b.score - a.score);
-
-                    renderHighScores(scores);
-                } catch (error) {
-                    console.error("Error fetching high scores:", error);
-                }
-            };
-
-            const renderHighScores = (scores) => {
-                scoresList.innerHTML = '';
-                if (scores.length === 0) {
-                    scoresList.innerHTML = `<p class="text-center text-sm">Aún no hay puntuaciones. ¡Sé la primera!</p>`;
-                    return;
-                }
-                scores.forEach((item) => {
-                    const scoreItem = document.createElement('div');
-                    scoreItem.className = "high-score-item";
-                    scoreItem.innerHTML = `
-                        <span>${item.userId}</span>
-                        <span>${item.score}</span>
-                    `;
-                    scoresList.appendChild(scoreItem);
                 });
             };
 
@@ -494,26 +373,10 @@ YPE html>
                 instructionsVisible = !instructionsVisible;
                 if (instructionsVisible) {
                     instructionsBox.classList.add('show');
-                    highScoresBox.style.display = 'none';
-                    highScoresVisible = false;
                 } else {
                     instructionsBox.classList.remove('show');
                 }
             });
-
-            highScoresBtn.addEventListener('click', () => {
-                highScoresVisible = !highScoresVisible;
-                if (highScoresVisible) {
-                    highScoresBox.style.display = 'flex';
-                    instructionsBox.classList.remove('show');
-                    instructionsVisible = false;
-                } else {
-                    highScoresBox.style.display = 'none';
-                }
-            });
-            
-            // Initial fetch of high scores
-            fetchHighScores();
         });
     </script>
 </body>
